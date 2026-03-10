@@ -51,7 +51,7 @@ def get_current_user():
 
 # ─── LEADS ───────────────────────────────────────────────────────────────────
 
-@app.get("/api/leads"
+@app.get("/api/leads")
 def get_leads(
     search: Optional[str] = None,
     status: Optional[str] = None,
@@ -74,7 +74,7 @@ def get_leads(
         query = query.filter(Lead.status == status)
     return query.order_by(Lead.created_at.desc()).offset(skip).limit(limit).all()
 
-@app.post("/api/leads"
+@app.post("/api/leads")
 def create_lead(lead: LeadCreate, db: Session = Depends(get_db), user=Depends(get_current_user)):
     db_lead = Lead(**lead.dict())
     db.add(db_lead)
