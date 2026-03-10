@@ -85,7 +85,7 @@ def create_lead(lead: LeadCreate, db: Session = Depends(get_db), user=Depends(ge
     db.refresh(db_lead)
     return db_lead
 
-@app.get("/api/leads/{lead_id}", response_model=LeadResponse)
+@app.get("/api/leads/{lead_id}")
 def get_lead(lead_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
