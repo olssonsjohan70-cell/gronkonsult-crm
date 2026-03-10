@@ -8,7 +8,7 @@ export function Reminders({ navigate }) {
   const [reminders, setReminders] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
-  const [form, setForm] = useState({ title: "", due_date: "", description: "", lead_id: "" })
+  const [form, setForm] = useState({ title: "", due_at: "", description: "", lead_id: "" })
   const [filter, setFilter] = useState("upcoming")
 
   const load = async () => {
@@ -23,7 +23,7 @@ export function Reminders({ navigate }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const handleCreate = async () => {
-    if (!form.title || !form.due_date) return
+    if (!form.title || !form.due_at) return
     try {
       await api.createReminder({
         ...form,
@@ -31,7 +31,7 @@ export function Reminders({ navigate }) {
       })
       addNotification("Påminnelse skapad! ◷", "success")
       setShowModal(false)
-      setForm({ title: "", due_date: "", description: "", lead_id: "" })
+      setForm({ title: "", due_at: "", description: "", lead_id: "" })
       load()
     } catch (err) {
       addNotification(err.message, "error")
@@ -52,7 +52,7 @@ export function Reminders({ navigate }) {
   today.setHours(0, 0, 0, 0)
 
   const filtered = reminders.filter(r => {
-    const d = new Date(r.due_date)
+    const d = new Date(r.due_at)
     if (filter === "overdue") return d < today
     if (filter === "today") return d.toDateString() === today.toDateString()
     if (filter === "upcoming") return d >= today
@@ -60,9 +60,9 @@ export function Reminders({ navigate }) {
   })
 
   const counts = {
-    overdue: reminders.filter(r => new Date(r.due_date) < today).length,
-    today: reminders.filter(r => new Date(r.due_date).toDateString() === today.toDateString()).length,
-    upcoming: reminders.filter(r => new Date(r.due_date) >= today).length,
+    overdue: reminders.filter(r => new Date(r.due_at) < today).length,
+    today: reminders.filter(r => new Date(r.due_at).toDateString() === today.toDateString()).length,
+    upcoming: reminders.filter(r => new Date(r.due_at) >= today).length,
   }
 
   return (
@@ -100,8 +100,8 @@ export function Reminders({ navigate }) {
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {filtered.sort((a, b) => new Date(a.due_date) - new Date(b.due_date)).map(r => {
-            const d = new Date(r.due_date)
+          {filtered.sort((a, b) => new Date(a.due_at) - new Date(b.due_at)).map(r => {
+            const d = new Date(r.due_at)
             const isOverdue = d < today
             const isToday = d.toDateString() === today.toDateString()
 
@@ -148,7 +148,7 @@ export function Reminders({ navigate }) {
                     fontWeight: 600,
                     color: isOverdue ? "var(--red)" : isToday ? "var(--orange)" : "var(--text2)"
                   }}>
-                    {isToday ? "⚡ Idag" : isOverdue ? `⚠ ${formatDate(r.due_date)}` : formatDate(r.due_date)}
+                    {isToday ? "⚡ Idag" : isOverdue ? `⚠ ${formatDate(r.due_at)}` : formatDate(r.due_at)}
                   </div>
                   {r.lead_id && (
                     <button
@@ -175,7 +175,7 @@ export function Reminders({ navigate }) {
             </div>
             <div className="form-group">
               <label className="form-label">Datum *</label>
-              <input type="date" className="input" value={form.due_date} onChange={e => set("due_date", e.target.value)} />
+              <input type="datetime-local" className="input" value={form.due_at} onChange={e => set("due_at", e.target.value)} />
             </div>
             <div className="form-group">
               <label className="form-label">Lead-ID (valfritt)</label>
@@ -188,7 +188,7 @@ export function Reminders({ navigate }) {
           </div>
           <div className="modal-footer">
             <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Avbryt</button>
-            <button className="btn btn-primary" onClick={handleCreate} disabled={!form.title || !form.due_date}>
+            <button className="btn btn-primary" onClick={handleCreate} disabled={!form.title || !form.due_at}>
               Skapa påminnelse
             </button>
           </div>

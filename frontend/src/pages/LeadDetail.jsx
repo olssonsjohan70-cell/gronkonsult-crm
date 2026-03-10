@@ -10,25 +10,30 @@ export function LeadDetail({ leadId, navigate }) {
   const [lead, setLead] = useState(null)
   const [calls, setCalls] = useState([])
   const [notes, setNotes] = useState([])
+  const [meetings, setMeetings] = useState([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [editForm, setEditForm] = useState({})
   const [newNote, setNewNote] = useState("")
   const [showReminderModal, setShowReminderModal] = useState(false)
-  const [reminderForm, setReminderForm] = useState({ title: "", due_date: "", description: "" })
+  const [reminderForm, setReminderForm] = useState({ title: "", due_at: "", description: "" })
+  const [showMeetingModal, setShowMeetingModal] = useState(false)
+  const [meetingForm, setMeetingForm] = useState({ title: "Bokat möte", scheduled_at: "", notes: "" })
   const [calling, setCalling] = useState(false)
 
   const load = async () => {
     setLoading(true)
-    const [l, c, n] = await Promise.all([
+    const [l, c, n, m] = await Promise.all([
       api.getLead(leadId),
       api.getCallsForLead(leadId),
       api.getNotes(leadId),
+      api.getMeetings({ lead_id: leadId }),
     ])
     setLead(l)
     setEditForm(l)
     setCalls(c)
     setNotes(n)
+    setMeetings(m)
     setLoading(false)
   }
 
@@ -80,12 +85,25 @@ export function LeadDetail({ leadId, navigate }) {
   }
 
   const handleAddReminder = async () => {
-    if (!reminderForm.title || !reminderForm.due_date) return
+    if (!reminderForm.title || !reminderForm.due_at) return
     try {
       await api.createReminder({ ...reminderForm, lead_id: leadId })
       addNotification("Påminnelse satt! ◷", "success")
       setShowReminderModal(false)
-      setReminderForm({ title: "", due_date: "", description: "" })
+      setReminderForm({ title: "", due_at: "", description: "" })
+    } catch (err) {
+      addNotification(err.message, "error")
+    }
+  }
+
+  const handleBookMeeting = async () => {
+    if (!meetingForm.scheduled_at) return
+    try {
+      await api.createMeeting({ ...meetingForm, lead_id: leadId })
+      addNotification("Möte bokat och påminnelser skapade ✓", "success")
+      setShowMeetingModal(false)
+      setMeetingForm({ title: "Bokat möte", scheduled_at: "", notes: "" })
+      load()
     } catch (err) {
       addNotification(err.message, "error")
     }
@@ -109,6 +127,7 @@ export function LeadDetail({ leadId, navigate }) {
         </div>
         <div className="flex gap-8">
           <button className="btn btn-secondary btn-sm" onClick={() => setShowReminderModal(true)}>◷ Påminnelse</button>
+          <button className="btn btn-primary btn-sm" onClick={() => setShowMeetingModal(true)}>📅 Boka möte</button>
           {editing ? (
             <>
               <button className="btn btn-secondary btn-sm" onClick={() => { setEditing(false); setEditForm(lead) }}>Avbryt</button>
@@ -278,6 +297,22 @@ export function LeadDetail({ leadId, navigate }) {
               </div>
             )}
           </div>
+
+          <div className="card">
+            <div className="card-title">Möten ({meetings.length})</div>
+            {meetings.length === 0 ? (
+              <p className="text-muted text-sm">Inga möten bokade ännu</p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {meetings.map(meeting => (
+                  <div key={meeting.id} style={{ background: "var(--bg3)", borderRadius: "var(--radius)", padding: "10px 14px" }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600 }}>{meeting.title}</div>
+                    <div className="text-muted text-sm">{formatDate(meeting.scheduled_at)} · {meeting.status}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -297,10 +332,10 @@ export function LeadDetail({ leadId, navigate }) {
             <div className="form-group">
               <label className="form-label">Datum</label>
               <input
-                type="date"
+                type="datetime-local"
                 className="input"
-                value={reminderForm.due_date}
-                onChange={e => setReminderForm(f => ({ ...f, due_date: e.target.value }))}
+                value={reminderForm.due_at}
+                onChange={e => setReminderForm(f => ({ ...f, due_at: e.target.value }))}
               />
             </div>
             <div className="form-group">
@@ -318,10 +353,33 @@ export function LeadDetail({ leadId, navigate }) {
             <button
               className="btn btn-primary"
               onClick={handleAddReminder}
-              disabled={!reminderForm.title || !reminderForm.due_date}
+              disabled={!reminderForm.title || !reminderForm.due_at}
             >
               Spara påminnelse
             </button>
+          </div>
+        </Modal>
+      )}
+
+      {showMeetingModal && (
+        <Modal title="Boka möte" onClose={() => setShowMeetingModal(false)}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div className="form-group">
+              <label className="form-label">Titel</label>
+              <input className="input" value={meetingForm.title} onChange={e => setMeetingForm(f => ({ ...f, title: e.target.value }))} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Mötestid</label>
+              <input type="datetime-local" className="input" value={meetingForm.scheduled_at} onChange={e => setMeetingForm(f => ({ ...f, scheduled_at: e.target.value }))} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Notering</label>
+              <textarea className="input" rows={2} value={meetingForm.notes} onChange={e => setMeetingForm(f => ({ ...f, notes: e.target.value }))} />
+            </div>
+          </div>
+          <div className="modal-footer">
+            <button className="btn btn-secondary" onClick={() => setShowMeetingModal(false)}>Avbryt</button>
+            <button className="btn btn-primary" onClick={handleBookMeeting} disabled={!meetingForm.scheduled_at}>Boka</button>
           </div>
         </Modal>
       )}

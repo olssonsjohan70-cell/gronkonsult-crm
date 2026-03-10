@@ -98,7 +98,7 @@ export function Dashboard({ navigate }) {
                 }}>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600 }}>{r.title}</div>
-                    <div className="text-muted text-sm">{formatDate(r.due_date)}</div>
+                    <div className="text-muted text-sm">{formatDate(r.due_at)}</div>
                   </div>
                   {r.lead_id && (
                     <button

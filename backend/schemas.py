@@ -68,16 +68,20 @@ class CallResponse(BaseModel):
 
 class ReminderCreate(BaseModel):
     lead_id: Optional[int] = None
+    meeting_id: Optional[int] = None
     title: str
     description: Optional[str] = ""
-    due_date: date
+    due_at: datetime
+    type: Optional[str] = "manual"
 
 class ReminderResponse(BaseModel):
     id: int
     lead_id: Optional[int]
+    meeting_id: Optional[int]
     title: str
     description: Optional[str]
-    due_date: date
+    due_at: datetime
+    type: str
     completed: bool
     created_at: datetime
 
@@ -107,3 +111,47 @@ class DashboardStats(BaseModel):
     calls_today: int
     total_calls: int
     overdue_reminders: int
+
+
+class MeetingCreate(BaseModel):
+    lead_id: int
+    title: Optional[str] = "Bokat möte"
+    scheduled_at: datetime
+    timezone: Optional[str] = "Europe/Stockholm"
+    notes: Optional[str] = ""
+
+
+class MeetingUpdate(BaseModel):
+    title: Optional[str] = None
+    scheduled_at: Optional[datetime] = None
+    status: Optional[str] = None
+    notes: Optional[str] = None
+    outcome: Optional[str] = None
+
+
+class MeetingResponse(BaseModel):
+    id: int
+    lead_id: int
+    title: str
+    scheduled_at: datetime
+    timezone: str
+    status: str
+    notes: Optional[str]
+    outcome: Optional[str]
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class DialerStartRequest(BaseModel):
+    lead_ids: Optional[list[int]] = None
+    status: Optional[str] = "new"
+
+
+class DialerStatusResponse(BaseModel):
+    session_id: int
+    status: str
+    total: int
+    done: int
