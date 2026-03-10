@@ -1,5 +1,32 @@
 const BASE = import.meta.env.VITE_API_BASE_URL || ""
 
+function getErrorMessage(payload, fallback = "Serverfel") {
+  if (!payload) return fallback
+
+  if (typeof payload === "string") return payload
+
+  if (Array.isArray(payload)) {
+    const msgs = payload
+      .map((item) => {
+        if (typeof item === "string") return item
+        if (item?.msg && item?.loc) return `${item.loc.join(".")}: ${item.msg}`
+        if (item?.msg) return item.msg
+        return null
+      })
+      .filter(Boolean)
+
+    return msgs.length ? msgs.join(" · ") : fallback
+  }
+
+  if (typeof payload === "object") {
+    if (typeof payload.detail === "string") return payload.detail
+    if (payload.detail) return getErrorMessage(payload.detail, fallback)
+    if (typeof payload.message === "string") return payload.message
+  }
+
+  return fallback
+}
+
 async function request(path, options = {}) {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 15000)
@@ -11,35 +38,40 @@ async function request(path, options = {}) {
         "Content-Type": "application/json",
         ...options.headers,
       },
-      signal: controller.signal
+      signal: controller.signal,
     })
 
     clearTimeout(timeout)
 
     const text = await res.text()
+    let parsed = null
+
+    if (text) {
+      try {
+        parsed = JSON.parse(text)
+      } catch {
+        parsed = text
+      }
+    }
 
     if (!res.ok) {
-      let msg = "Serverfel"
-      try {
-        const json = JSON.parse(text)
-        msg = json.detail || msg
-      } catch {}
-      throw new Error(msg)
+      throw new Error(getErrorMessage(parsed))
     }
 
-    if (!text) return null
-
-    try {
-      return JSON.parse(text)
-    } catch {
-      return text
-    }
-
+    return parsed
   } catch (err) {
     if (err.name === "AbortError") {
       throw new Error("Servern svarar inte (timeout)")
     }
-    throw err
+    if (err instanceof TypeError && /fetch/i.test(err.message || "")) {
+      throw new Error("Kunde inte nå servern. Kontrollera anslutning och API-URL.")
+    }
+    if (err instanceof Error) {
+      throw err
+    }
+    throw new Error("Ett okänt fel uppstod")
+  } finally {
+    clearTimeout(timeout)
   }
 }
 
@@ -67,11 +99,15 @@ export const api = {
       body: JSON.stringify(data)
     }),
 
-  updateLead: (id, data) =>
-    request(`/api/leads/${id}`, {
+  updateLead: (id, data) => {
+    const payload = { ...data }
+    if (payload.follow_up_date === "") payload.follow_up_date = null
+
+    return request(`/api/leads/${id}`, {
       method: "PUT",
-      body: JSON.stringify(data)
-    }),
+      body: JSON.stringify(payload)
+    })
+  },
 
   deleteLead: (id) =>
     request(`/api/leads/${id}`, {

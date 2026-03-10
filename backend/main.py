@@ -27,6 +27,7 @@ from twilio_service import TwilioService
 from auth import create_token, verify_token, hash_password, verify_password
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_
+from sqlalchemy.exc import IntegrityError
 import os
 from dotenv import load_dotenv
 
@@ -101,10 +102,17 @@ def update_lead(lead_id: int, lead_update: LeadUpdate, db: Session = Depends(get
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead hittades inte")
-    for field, value in lead_update.dict(exclude_unset=True).items():
+
+    update_data = lead_update.dict(exclude_unset=True)
+
+    for field, value in update_data.items():
         setattr(lead, field, value)
     lead.updated_at = datetime.utcnow()
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Telefonnumret används redan av ett annat lead")
     db.refresh(lead)
     return lead
 
@@ -479,6 +487,11 @@ def get_all_reminders(db: Session = Depends(get_db), user=Depends(get_current_us
 
 @app.post("/api/reminders", response_model=ReminderResponse)
 def create_reminder(reminder: ReminderCreate, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if reminder.lead_id is not None:
+        lead = db.query(Lead).filter(Lead.id == reminder.lead_id).first()
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead för påminnelsen hittades inte")
+
     db_reminder = Reminder(**reminder.dict())
     db_reminder.due_date = db_reminder.due_at.date()
     db.add(db_reminder)
