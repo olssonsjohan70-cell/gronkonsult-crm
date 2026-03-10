@@ -51,7 +51,7 @@ def get_current_user():
 
 # ─── LEADS ───────────────────────────────────────────────────────────────────
 
-@app.get("/api/leads", response_model=list[LeadResponse])
+@app.get("/api/leads"
 def get_leads(
     search: Optional[str] = None,
     status: Optional[str] = None,
