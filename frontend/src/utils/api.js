@@ -1,4 +1,4 @@
-const BASE = "https://gronkonsult-crm-production.up.railway.app"
+const BASE = import.meta.env.VITE_API_BASE_URL || ""
 
 async function request(path, options = {}) {
   const controller = new AbortController()
@@ -152,6 +152,24 @@ export const api = {
   createReminder: (data) =>
     request("/api/reminders", {
       method: "POST",
+      body: JSON.stringify(data)
+    }),
+
+  // Meetings
+  getMeetings: (params = {}) => {
+    const q = new URLSearchParams(params).toString()
+    return request(`/api/meetings${q ? "?" + q : ""}`)
+  },
+
+  createMeeting: (data) =>
+    request("/api/meetings", {
+      method: "POST",
+      body: JSON.stringify(data)
+    }),
+
+  updateMeeting: (id, data) =>
+    request(`/api/meetings/${id}`, {
+      method: "PUT",
       body: JSON.stringify(data)
     }),
 
