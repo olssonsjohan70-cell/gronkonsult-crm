@@ -50,7 +50,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+from fastapi.staticfiles import StaticFiles
+import os
 
+# Serve frontend static files
+frontend_dist = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
+if os.path.exists(frontend_dist):
+    app.mount
+("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
 twilio = TwilioService()
 
 # Auth disabled – single user, opens directly
